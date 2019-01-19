@@ -6,7 +6,7 @@
 #define PIN_RD 3
 #define PIN_WR 2
 #define PIN_RESET 7
-#define CLOCK_CYCLE_MS 500
+#define CLOCK_CYCLE_MS 100
 
 /*TaskHandle_t xClockThreadHandle;
 TaskHandle_t xReadThreadHandle;
@@ -94,14 +94,14 @@ int handle_RD() {
       dataoutput = 0x00;
     }*/
     
-    printf("R,0x%04X\n",address);
+    printf("R,%04X\n",address);
     //printf("RD Triggered, RD: %d, WR: %d, MREQ: %d, addr: 0x%04X ", digitalRead(PIN_RD), digitalRead(PIN_WR), digitalRead(PIN_MREQ), address);
     Serial.flush();
     char cmd;
     
     while(!Serial.available());
     cmd = Serial.read();
-    if(cmd == 'A')
+    if(cmd == 'R')
     {
       reset();
       return 1;
@@ -156,7 +156,7 @@ void handle_WR() {
       RAM_data[address-0x1000] = datainput;
     }*/
     //printf("         data: 0x%02X\n", datainput);
-    printf("W,0x%04X,0x%02X\n",address,datainput);
+    printf("W,%04X,%02X\n",address,datainput);
     digitalWrite(PIN_WAIT, HIGH);
 
 }
