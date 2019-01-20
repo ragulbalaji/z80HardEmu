@@ -38,15 +38,15 @@ var rom = [
   //0x3C, // INC   A
   //0x77, // LD   (HL),A
   //0xC3, 0x00, 0x00 // JP LOOP
-  0x32, 0x34, 0x56
+  0x00,0x00, 0xc5, 0xC3, 0x00, 0x00
 ]
 //rom = ["2".charCodeAt(0), "A".charCodeAt(0), "B".charCodeAt(0)]
 for (var i = 0; i < rom.length; i++) {
   CpuMemory[i] = rom[i]
 }
 try {
-  EmulatorRawSerial = new SerialPort('/dev/ttyACM0', { baudRate: 115200 })
-  //EmulatorRawSerial = new SerialPort('/dev/tty.usbmodem14101', { baudRate: 115200 })
+  //EmulatorRawSerial = new SerialPort('/dev/ttyACM0', { baudRate: 115200 })
+  EmulatorRawSerial = new SerialPort('/dev/tty.usbmodem14101', { baudRate: 115200 })
   EmulatorSerial = EmulatorRawSerial.pipe(new Readline({ delimiter: '\n' }))
 
   EmulatorSerial.on('data', function (data) {
@@ -59,20 +59,27 @@ try {
       case 'R':
         d0 = CpuMemory[addr]
         console.log('Read', '0x' + addr.toString(16), ':', '0x' + d0.toString(16), 'reply W' + String.fromCharCode(d0))
-        setTimeout(function() {
-          EmulatorRawSerial.write('W' + String.fromCharCode(d0))
-        }, 1000)
+        //setTimeout(function() {
+          EmulatorRawSerial.write(Buffer(['W'.charCodeAt(0), d0]))
+        //}, 1000)
         break
       case 'W':
         d0 = parseInt(cmds[2], 16)
         CpuMemory[addr] = d0
         console.log('Write', '0x' + addr.toString(16), ':', '0x' + d0.toString(16))
         // console.log('W', addr.toString(16), CpuMemory[addr].toString(16), d0)
+
+        packet = {
+          func: "memory",
+          memory: CpuMemory
+        }
+        server.emit("update",packet);
         break
       case 'S':
         cmds.shift();
         states = cmds.map(num => parseInt(num, 10))
-        let packet = {
+
+        packet = {
           func: "states",
           states: states
         }
@@ -80,12 +87,13 @@ try {
         break
       default:
         console.error('❌ Resetting CPU :', data)
-        EmulatorRawSerial.write('R') // RESET
+        reset()
         break
     }
   })
 } catch (error) {
-  console.error('☹️ Emulator Controller Serial Connection Fail')
+  console.error('☹️ Emulator Controller Serial Connection Fail', error)
 }
 
-EmulatorSerial.write('R')
+reset()
+function reset(){ EmulatorSerial.write('R') }
