@@ -5,9 +5,9 @@
 
 // Emulation Block
 let CpuMemory = new Array(0x10000)
-CpuMemory.fill(0xC5)
+CpuMemory.fill(0x0)
 
-/*
+
 // Web Sockets Block
 const io = require('socket.io')
 const server = io.listen(3000)
@@ -16,7 +16,7 @@ server.on('connection', function (socket) {
   console.log(socket.conn.id, 'Connected', socket.conn.remoteAddress)
   socket.emit('welcome', 'welcome man')
 })
-*/
+
 
 // Serial Handling Block
 const SerialPort = require('serialport')
@@ -28,16 +28,17 @@ var rom = [
 
   //0x01, 0xff, 0xff, 0xc5, 0xc3, 0x06, 0x00, 0x00, 0x00
   //0xC5, 0xC5
-  /*0x31, 0x00, 0x01, // LD SP, 0x0100
-  0x01, 0x00, 0x00, // LD BC,0x0
-  0x21, 0x00, 0x10, // LD HL, 0x1000
+  //0x31, 0x00, 0x01, // LD SP, 0x0100
+  //0x01, 0x00, 0x00, // LD BC,0x0
+  //0x21, 0x00, 0x10, // LD HL, 0x1000
   // LOOP:
-  0xC5, // PUSH BC
-  0x03, // INC BC
-  0x7E, // LD   A,(HL)
-  0x3C, // INC   A
-  0x77, // LD   (HL),A
-  0xC3, 0x06, 0x00 // JP LOOP*/
+  //0xC5, // PUSH BC
+  //0x03, // INC BC
+  //0x7E, // LD   A,(HL)
+  //0x3C, // INC   A
+  //0x77, // LD   (HL),A
+  //0xC3, 0x00, 0x00 // JP LOOP
+  0x32, 0x34, 0x56
 ]
 //rom = ["2".charCodeAt(0), "A".charCodeAt(0), "B".charCodeAt(0)]
 for (var i = 0; i < rom.length; i++) {
@@ -71,6 +72,11 @@ try {
       case 'S':
         cmds.shift();
         states = cmds.map(num => parseInt(num, 10))
+        let packet = {
+          func: "states",
+          states: states
+        }
+        server.emit("update",packet);
         break
       default:
         console.error('❌ Resetting CPU :', data)
@@ -82,4 +88,4 @@ try {
   console.error('☹️ Emulator Controller Serial Connection Fail')
 }
 
-EmulatorSerial.write('A')
+EmulatorSerial.write('R')
