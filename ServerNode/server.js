@@ -7,7 +7,7 @@
 let CpuMemory = new Array(0x10000)
 CpuMemory.fill(0x0)
 
-
+const ASM = require("asm80")
 // Web Sockets Block
 const io = require('socket.io')
 const server = io.listen(3000)

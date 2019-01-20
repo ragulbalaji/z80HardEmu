@@ -110,16 +110,15 @@ int handle_RD() {
     dataoutput = Serial.read();
 
     
-    //dataoutput = 0x00;
-    delay(1);
+    //dataoutput = 0xC5;
     for(int i = 0;i<8;i++)
     {
       pinMode(D_pins[i], OUTPUT);
       digitalWrite(D_pins[i], (dataoutput>>i) & 1);
     }
     //printf("data: 0x%02X\n", dataoutput);
-    delay(1);
     //Serial.flush();
+    delay(100);
     digitalWrite(PIN_WAIT, HIGH);
     return 0;
 }
@@ -172,7 +171,7 @@ void setup() {
   digitalWrite(PIN_WAIT, HIGH);
   
   //attachInterrupt(digitalPinToInterrupt(PIN_RD), handle_RD, FALLING);
-  //attachInterrupt(digitalPinToInterrupt(PIN_WR), handle_WR, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PIN_WR), handle_WR, FALLING);
   
   randomSeed(analogRead(0));
   
@@ -216,9 +215,28 @@ void reset() {
    }
    digitalWrite(PIN_RESET, HIGH);
 }
-void startexec(){
-  
-  
+void getallstate(){
+  Serial.print("S,");
+  Serial.print(digitalRead(PIN_CLOCK));
+  for(int i = 0;i<16;i++)
+  {
+    Serial.print(",");
+    Serial.print(digitalRead(A_pins[i]));
+  }
+  for(int i = 0;i<8;i++)
+  {
+    Serial.print(",");
+    Serial.print(digitalRead(D_pins[i]));
+  }
+  Serial.print(",");
+  Serial.print(digitalRead(PIN_RD));
+  Serial.print(",");
+  Serial.print(digitalRead(PIN_WR));
+  Serial.print(",");
+  Serial.print(digitalRead(PIN_WAIT));
+  Serial.print(",");
+  Serial.print(digitalRead(PIN_MREQ));
+  Serial.print("\n");
 }
 
 void stopexec(){
@@ -232,22 +250,6 @@ int lastWR = 1;
 int lastRD = 1;
 void loop() {
 
-    if(Serial.available() > 0)
-    {
-      char cmd = Serial.read();
-      switch(cmd)
-      {
-        case 'S':
-          startexec();
-          break;
-        case 'E':
-          stopexec();
-          break;
-        case 'R':
-          reset();
-          break;
-      }
-    }
     int curRD = digitalRead(PIN_RD);
     if(curRD == 0 && lastRD == 1)
     {
@@ -256,18 +258,20 @@ void loop() {
         return;
       }
     }
-    int curWR = digitalRead(PIN_WR);
+    /*int curWR = digitalRead(PIN_WR);
     if(curWR == 0 && lastWR == 1)
     {
       handle_WR();
-    }
+    }*/
     lastRD = curRD;
-    lastWR = curWR;
+    //lastWR = curWR;
     digitalWrite(PIN_CLOCK, HIGH);
     //printf("CLOCK HIGH\n");
     delay(CLOCK_CYCLE_MS / 2);
+    getallstate();
    //printf("RD: %d, WR: %d\n", digitalRead(PIN_RD), digitalRead(PIN_WR));
     digitalWrite(PIN_CLOCK, LOW);
+    getallstate();
     //printf("CLOCK LOW\n");
     delay(CLOCK_CYCLE_MS / 2);
    //printf("RD: %d, WR: %d\n", digitalRead(PIN_RD), digitalRead(PIN_WR));
