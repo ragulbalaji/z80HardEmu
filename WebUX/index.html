@@ -1,18 +1,183 @@
 <html>
-    <head>
-        <title>Hard Emulation Lab</title>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css">
-		<script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
-        <script src="http://localhost:3000/socket.io/socket.io.js"></script>
-        <script>
-            var socket = io("http://localhost:3000");
-            // use your socket
-            socket.on("update", (message) => {
-				// do something with the message.
-				document.body.innerHTML = (JSON.stringify(message))
-            })
-        </script>
-    </head>
-    <body>
-    </body>
+
+<head>
+    <title>Hard Emulation Lab</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css">
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+    <script src="http://192.168.43.182:3000/socket.io/socket.io.js"></script>
+    <style>
+        #memorymap {
+            height: 500px;
+            width: 500px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar is-warning" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item">
+                <img src="logo.png" alt="Learn Low Level Computing Concepts" height="28">
+            </a>
+            <a class="navbar-item">
+                Ragul & JieFeng 2019
+            </a>
+        </div>
+
+        <div class="navbar-menu">
+            <div class="navbar-start"> </div>
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <div class="buttons">
+                        <a class="button is-primary">
+                            <strong>Sign up</strong>
+                        </a>
+                        <a class="button is-light">
+                            Log in
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <br>
+        <nav class="level is-mobile">
+                <div class="level-item has-text-centered">
+                    <div>
+                        <p class="heading">Address</p>
+                        <p class="title"id="addressshow">-</p>
+                    </div>
+                </div>
+                <div class="level-item has-text-centered">
+                    <div>
+                        <p class="heading">Data</p>
+                        <p class="title"id="datashow">-</p>
+                    </div>
+                </div>
+                <div class="level-item has-text-centered">
+                    <div>
+                        <p class="heading">RD WR WAIT MREQ</p>
+                        <p class="title" id="flagshow">-</p>
+                    </div>
+                </div>
+                <div class="level-item has-text-centered">
+                    <div>
+                        <p class="heading">Clock</p>
+                        <p class="title" id="clockshow">-</p>
+                    </div>
+                </div>
+            </nav>
+        <div class="columns">
+            <div class="column">
+                <article class="message is-primary">
+                    <div class="message-header">
+                        <p>Editor</p>
+                    </div>
+                    <div class="message-body">
+                        <textarea id="sourcecode" class="textarea" placeholder="source"></textarea>
+                        <br>
+                        <div class="buttons">
+                            <a class="button is-primary" onclick="assemble()">
+                                <strong>Assemble</strong>
+                            </a>
+                            <a class="button is-danger" onclick="load()">
+                                Load
+                            </a>
+                            <a class="button is-warning" onclick="reset()">
+                                Reset
+                            </a>
+                        </div>
+                        <textarea id="binary" class="textarea" placeholder="binary" disabled></textarea>
+                    </div>
+                </article>
+            </div>
+            <div class="column">
+                <article class="message is-danger">
+                    <div class="message-header">
+                        <p>Memory Map LIVE</p>
+                    </div>
+                    <div class="message-body">
+                        <canvas id="memorymap" width="1024" height="1024">GET CHROME YOU FOOL</canvas>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    var socket = io("http://192.168.43.182:3000");
+
+    let CPU = {
+        state: [],
+        memory: (new Array(65536)).fill(0)
+    }
+
+    socket.on("update", (packet) => {
+        //console.log(packet)
+        if ("func" in packet) {
+            console.log(packet.func)
+            switch (packet.func) {
+                case "memory":
+                    for (var i = 0; i < packet.memory.length; i++) CPU.memory[i] = packet.memory[i]
+                    break
+                case "states":
+                    CPU.state = packet.states
+                    drawStates()
+                    break
+            }
+        }
+    })
+
+    let addressshow = document.getElementById("addressshow")
+    let datashow = document.getElementById("datashow")
+    let flagshow = document.getElementById("flagshow")
+    let clockshow = document.getElementById("clockshow")
+    function drawStates() {
+        clockshow.innerText = CPU.state[0] ? "H" : "L"
+        addressshow.innerText = CPU.state.slice(1,16)
+        datashow.innerText = CPU.state.slice(17,24)
+        flagshow.innerText = CPU.state.slice(25)
+    }
+
+    let canvas = document.getElementById("memorymap")
+    let ctx = canvas.getContext("2d");
+    setInterval(drawMemory, 1000)
+
+    function drawMemory() {
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, 1024, 1024);
+
+        let blocknum = 24
+        let showMem = blocknum * blocknum
+        let blockSize = 1024 / blocknum
+        for (var mem = 0; mem < showMem; mem++) {
+            val = CPU.memory[mem]
+            //if(val > 0) ctx.fillStyle = "red"
+            //else ctx.fillStyle = "black"
+            ctx.fillStyle = "rgb(" + ((val >> 5) * 36) + "," + (((val >> 2) & 0b111) * 36) + "," + ((val & 0b11) * 85) +
+                ")"; // 8bit Color RRRGGGBB -- Ragul
+            ctx.fillRect(blockSize * (mem % blocknum), blockSize * Math.floor(mem / blocknum), blockSize, blockSize);
+        }
+    }
+
+    function assemble() {
+        socket.emit("assemble", document.getElementById("sourcecode").value)
+    }
+
+    socket.on("assemblesuccess", (packet) => {
+        document.getElementById("binary").value = packet.phex
+    })
+
+    function load() {
+        socket.emit("load", {})
+    }
+
+    function reset() {
+        socket.emit("reset", {})
+    }
+</script>
+
 </html>
