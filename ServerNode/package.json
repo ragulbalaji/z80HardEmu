@@ -9,6 +9,7 @@
   "author": "Ragul Balaji",
   "license": "GPL-3.0-or-later",
   "dependencies": {
+    "asm80": "^1.10.0",
     "serialport": "^7.1.3",
     "socket.io": "^2.2.0"
   }
